@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MathClient interface {
 	Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error)
+	PrimeFactors(ctx context.Context, in *PrimeFactorsRequest, opts ...grpc.CallOption) (Math_PrimeFactorsClient, error)
 }
 
 type mathClient struct {
@@ -42,11 +43,44 @@ func (c *mathClient) Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallO
 	return out, nil
 }
 
+func (c *mathClient) PrimeFactors(ctx context.Context, in *PrimeFactorsRequest, opts ...grpc.CallOption) (Math_PrimeFactorsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Math_ServiceDesc.Streams[0], "/math.Math/PrimeFactors", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &mathPrimeFactorsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Math_PrimeFactorsClient interface {
+	Recv() (*PrimeFactorsResponse, error)
+	grpc.ClientStream
+}
+
+type mathPrimeFactorsClient struct {
+	grpc.ClientStream
+}
+
+func (x *mathPrimeFactorsClient) Recv() (*PrimeFactorsResponse, error) {
+	m := new(PrimeFactorsResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MathServer is the server API for Math service.
 // All implementations must embed UnimplementedMathServer
 // for forward compatibility
 type MathServer interface {
 	Sum(context.Context, *SumRequest) (*SumResponse, error)
+	PrimeFactors(*PrimeFactorsRequest, Math_PrimeFactorsServer) error
 	mustEmbedUnimplementedMathServer()
 }
 
@@ -56,6 +90,9 @@ type UnimplementedMathServer struct {
 
 func (UnimplementedMathServer) Sum(context.Context, *SumRequest) (*SumResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sum not implemented")
+}
+func (UnimplementedMathServer) PrimeFactors(*PrimeFactorsRequest, Math_PrimeFactorsServer) error {
+	return status.Errorf(codes.Unimplemented, "method PrimeFactors not implemented")
 }
 func (UnimplementedMathServer) mustEmbedUnimplementedMathServer() {}
 
@@ -88,6 +125,27 @@ func _Math_Sum_Handler(srv interface{}, ctx context.Context, dec func(interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Math_PrimeFactors_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PrimeFactorsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MathServer).PrimeFactors(m, &mathPrimeFactorsServer{stream})
+}
+
+type Math_PrimeFactorsServer interface {
+	Send(*PrimeFactorsResponse) error
+	grpc.ServerStream
+}
+
+type mathPrimeFactorsServer struct {
+	grpc.ServerStream
+}
+
+func (x *mathPrimeFactorsServer) Send(m *PrimeFactorsResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Math_ServiceDesc is the grpc.ServiceDesc for Math service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +158,12 @@ var Math_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Math_Sum_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "PrimeFactors",
+			Handler:       _Math_PrimeFactors_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "math.proto",
 }
