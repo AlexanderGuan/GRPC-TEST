@@ -2,9 +2,13 @@ syntax = "proto3";
 option go_package="GRPC-TEST/math/mathpb";
 package math;
 
+// The math service definition
 service Math{
     rpc Sum(SumRequest) returns (SumResponse) {};
     rpc PrimeFactors(PrimeFactorsRequest) returns(stream PrimeFactorsResponse){};
+
+    // Average is client-side streaming RPC
+    rpc Average(stream AverageRequest) returns (AverageResponse){}
 }
 
 message SumRequest{
@@ -22,4 +26,14 @@ message PrimeFactorsRequest{
 
 message PrimeFactorsResponse{
     int64 result = 1;
+}
+
+// The request message for Average
+message AverageRequest{
+    int32 num = 1;
+}
+
+// The Response message for Average
+message AverageResponse{
+    double result = 1;
 }

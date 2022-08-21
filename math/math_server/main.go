@@ -1,9 +1,11 @@
+// Package main implements a server for Math service.
 package main
 
 import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -11,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// server is used to implements mathpb.MathServer.
 type server struct {
 	*pb.UnimplementedMathServer
 }
@@ -39,11 +42,38 @@ func (s *server) PrimeFactors(in *pb.PrimeFactorsRequest, stream pb.Math_PrimeFa
 	return nil
 }
 
+// Average implements mathpb.MathServer
+func (s *server) Average(stream pb.Math_AverageServer) error {
+	fmt.Printf("--- gRPC Client-side Streaming RPC ---\n")
+
+	// Read requests and send responses
+	var sum int32
+	count := 0
+	for {
+		in, err := stream.Recv()
+
+		if err == io.EOF {
+			fmt.Printf("Receiving client streaming data completed\n")
+			average := float64(sum) / float64(count)
+			return stream.SendAndClose(&pb.AverageResponse{Result: average})
+		}
+
+		fmt.Printf("request received: %v\n", in)
+
+		if err != nil {
+			log.Fatalf("Error while receiving client streaming data: %v", err)
+		}
+
+		sum += in.Num
+		count++
+	}
+}
+
 func main() {
 	port := flag.Int("port", 50051, "the port to serve on")
 	flag.Parse()
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port)) // Spcify the port we want to use to listen for client requests.
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
