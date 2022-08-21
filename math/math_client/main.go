@@ -1,3 +1,4 @@
+// Package main implements a client for Math service
 package main
 
 import (
@@ -28,6 +29,7 @@ func unaryCall(c pb.MathClient) {
 
 func serverSideStreamingCall(c pb.MathClient) {
 	fmt.Printf("--- gRPC Server-side Streaming RPC Call ---\n")
+	// Make server-side streaming RPC
 	req := &pb.PrimeFactorsRequest{Num: 48}
 	stream, err := c.PrimeFactors(context.Background(), req)
 	if err != nil {
@@ -61,7 +63,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	c := pb.NewMathClient(conn) // Once the gPRC channel is setup, we need a client stub to perform RPCs. We get this using the NewMathClient method provided in the pb package we generated from our proto.
+	c := pb.NewMathClient(conn) // Once the gPRC channel is setup, we need a client stub to perform RPCs. We get this using the NewMathClient method provided in the pb package we generated from our .proto.
 
 	// Contact the server and print out its response.
 	// 1.UnaryCall(c)

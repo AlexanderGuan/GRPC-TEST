@@ -49,9 +49,9 @@ func main() {
 	}
 	fmt.Printf("server listening at %v\n", lis.Addr())
 
-	s := grpc.NewServer()
-	pb.RegisterMathServer(s, &server{})
-	if err := s.Serve(lis); err != nil {
+	s := grpc.NewServer()                // Create an instance of the gRPC srver.
+	pb.RegisterMathServer(s, &server{})  // Register our service implementation with gRPC srver.
+	if err := s.Serve(lis); err != nil { // Call Server() on the server with our port details to do a blocking wait until the process is killed or Stop() is called.
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
