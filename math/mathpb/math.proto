@@ -9,6 +9,9 @@ service Math{
 
     // Average is client-side streaming RPC
     rpc Average(stream AverageRequest) returns (AverageResponse){}
+
+    // Maximum is bi-directional streaming RPC
+    rpc Maximum(stream MaximumRequest) returns (stream MaximumResponse) {}
 }
 
 message SumRequest{
@@ -36,4 +39,12 @@ message AverageRequest{
 // The Response message for Average
 message AverageResponse{
     double result = 1;
+}
+
+message MaximumRequest{
+    int32 num = 1;
+}
+
+message MaximumResponse{
+    int32 result = 1;
 }

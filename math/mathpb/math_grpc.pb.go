@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.15.8
-// source: mathpb/math.proto
+// source: math/mathpb/math.proto
 
 package mathpb
 
@@ -26,6 +26,8 @@ type MathClient interface {
 	PrimeFactors(ctx context.Context, in *PrimeFactorsRequest, opts ...grpc.CallOption) (Math_PrimeFactorsClient, error)
 	// Average is client-side streaming RPC
 	Average(ctx context.Context, opts ...grpc.CallOption) (Math_AverageClient, error)
+	// Maximum is bi-directional streaming RPC
+	Maximum(ctx context.Context, opts ...grpc.CallOption) (Math_MaximumClient, error)
 }
 
 type mathClient struct {
@@ -111,6 +113,37 @@ func (x *mathAverageClient) CloseAndRecv() (*AverageResponse, error) {
 	return m, nil
 }
 
+func (c *mathClient) Maximum(ctx context.Context, opts ...grpc.CallOption) (Math_MaximumClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Math_ServiceDesc.Streams[2], "/math.Math/Maximum", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &mathMaximumClient{stream}
+	return x, nil
+}
+
+type Math_MaximumClient interface {
+	Send(*MaximumRequest) error
+	Recv() (*MaximumResponse, error)
+	grpc.ClientStream
+}
+
+type mathMaximumClient struct {
+	grpc.ClientStream
+}
+
+func (x *mathMaximumClient) Send(m *MaximumRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *mathMaximumClient) Recv() (*MaximumResponse, error) {
+	m := new(MaximumResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MathServer is the server API for Math service.
 // All implementations must embed UnimplementedMathServer
 // for forward compatibility
@@ -119,6 +152,8 @@ type MathServer interface {
 	PrimeFactors(*PrimeFactorsRequest, Math_PrimeFactorsServer) error
 	// Average is client-side streaming RPC
 	Average(Math_AverageServer) error
+	// Maximum is bi-directional streaming RPC
+	Maximum(Math_MaximumServer) error
 	mustEmbedUnimplementedMathServer()
 }
 
@@ -134,6 +169,9 @@ func (UnimplementedMathServer) PrimeFactors(*PrimeFactorsRequest, Math_PrimeFact
 }
 func (UnimplementedMathServer) Average(Math_AverageServer) error {
 	return status.Errorf(codes.Unimplemented, "method Average not implemented")
+}
+func (UnimplementedMathServer) Maximum(Math_MaximumServer) error {
+	return status.Errorf(codes.Unimplemented, "method Maximum not implemented")
 }
 func (UnimplementedMathServer) mustEmbedUnimplementedMathServer() {}
 
@@ -213,6 +251,32 @@ func (x *mathAverageServer) Recv() (*AverageRequest, error) {
 	return m, nil
 }
 
+func _Math_Maximum_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MathServer).Maximum(&mathMaximumServer{stream})
+}
+
+type Math_MaximumServer interface {
+	Send(*MaximumResponse) error
+	Recv() (*MaximumRequest, error)
+	grpc.ServerStream
+}
+
+type mathMaximumServer struct {
+	grpc.ServerStream
+}
+
+func (x *mathMaximumServer) Send(m *MaximumResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *mathMaximumServer) Recv() (*MaximumRequest, error) {
+	m := new(MaximumRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Math_ServiceDesc is the grpc.ServiceDesc for Math service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -236,6 +300,12 @@ var Math_ServiceDesc = grpc.ServiceDesc{
 			Handler:       _Math_Average_Handler,
 			ClientStreams: true,
 		},
+		{
+			StreamName:    "Maximum",
+			Handler:       _Math_Maximum_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
 	},
-	Metadata: "mathpb/math.proto",
+	Metadata: "math/mathpb/math.proto",
 }
